@@ -3,12 +3,25 @@
   "version": "0.0.1",
   "description": "Check certificate for validity",
   "main": "index.js",
-  "private": true,
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "UNLICENSED",
+  "keywords": [
+    "react-native",
+    "ios",
+    "certificate",
+    "mobile"
+  ],
+  "author": "Vladimir Timofeev <vovkasm@gmail.com>",
+  "homepage": "https://github.com/vovkasm/react-native-certificate-check",
+  "bugs": {
+    "url": "https://github.com/vovkasm/react-native-certificate-check/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/vovkasm/react-native-certificate-check.git"
+  },
+  "license": "MIT",
   "peerDependencies": {
       "react-native": ">=0.40.0"
   }
