@@ -246,6 +246,7 @@
 				A258502D1E433B4900BAC571 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		A28848891DD076E100586339 /* Build configuration list for PBXProject "TCertChecker" */ = {
 			isa = XCConfigurationList;
