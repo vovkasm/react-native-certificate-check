@@ -3,6 +3,8 @@
 
 #import "TCertChecker.h"
 
+static NSString* NSStringFromSecTrustResult(SecTrustResultType result);
+
 @interface NSData (NSDataAdditions)
 
 + (NSData *) base64DataFromString:(NSString *)string;
@@ -29,6 +31,7 @@ RCT_EXPORT_METHOD(validateCertificate:(NSString*)pemData resolver:(RCTPromiseRes
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         BOOL result = NO;
+        NSDictionary* resultDict = nil;
         NSError* error = nil;
 
         SecCertificateRef cert = nil;
@@ -45,7 +48,7 @@ RCT_EXPORT_METHOD(validateCertificate:(NSString*)pemData resolver:(RCTPromiseRes
         SecCertificateRef certArray[1] = { cert };
         certs = CFArrayCreate(nil, (CFTypeRef*)certArray, 1, nil);
 
-        SecPolicyRef policy = SecPolicyCreateBasicX509();
+        SecPolicyRef policy = SecPolicyCreateSSL(true, nil);
         OSStatus status = SecTrustCreateWithCertificates(certs, policy, &trust);
         CFRelease(policy);
 
@@ -71,17 +74,30 @@ RCT_EXPORT_METHOD(validateCertificate:(NSString*)pemData resolver:(RCTPromiseRes
                 result = NO;
         }
 
+        resultDict = (NSDictionary*)CFBridgingRelease(SecTrustCopyResult(trust));
+
     finish:
         if (cert != nil) CFRelease(cert);
         if (certs != nil) CFRelease(certs);
         if (trust != nil) CFRelease(trust);
 
         if (error == nil) {
-            resolve(@(result));
+            resolve([self resolveResult:result platformResult:resultDict]);
         } else {
             reject(@"error", [error localizedDescription], error);
         }
     });
+}
+
+- (NSDictionary*)resolveResult:(BOOL)valid platformResult:(NSDictionary*)result {
+    NSMutableDictionary* platformResult = [result mutableCopy];
+    if (platformResult[@"TrustResultValue"]) {
+        id val = platformResult[@"TrustResultValue"];
+        if ([val respondsToSelector:@selector(intValue)]) {
+            platformResult[@"TrustResultValue"] = NSStringFromSecTrustResult([val intValue]);
+        }
+    }
+    return @{@"valid":@(valid), @"platformResult":platformResult};
 }
 
 - (NSError*)errorWithCode:(NSInteger)code message:(NSString*)message {
@@ -166,3 +182,20 @@ RCT_EXPORT_METHOD(validateCertificate:(NSString*)pemData resolver:(RCTPromiseRes
 }
 
 @end
+
+static NSString* NSStringFromSecTrustResult(SecTrustResultType result) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    switch(result) {
+        case kSecTrustResultInvalid: return @"invalid";
+        case kSecTrustResultProceed: return @"proceed";
+        case kSecTrustResultConfirm: return @"confirm";
+        case kSecTrustResultDeny: return @"deny";
+        case kSecTrustResultUnspecified: return @"unspecified";
+        case kSecTrustResultRecoverableTrustFailure: return @"recoverableTrustFailure";
+        case kSecTrustResultFatalTrustFailure: return @"fatalTrustFailure";
+        case kSecTrustResultOtherError: return @"otherError";
+        default: return [NSString stringWithFormat:@"unknown(%u)", result];
+    }
+#pragma clang diagnostic pop
+}
